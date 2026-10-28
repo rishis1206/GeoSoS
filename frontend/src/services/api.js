@@ -2,7 +2,9 @@ import axios from 'axios'
 
 export const API_ORIGIN = (
   import.meta.env.VITE_API_URL ||
-  (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+  (typeof window !== 'undefined' && window.location.hostname.includes('pages.dev')
+    ? 'https://legends-national-else-extremely.trycloudflare.com'
+    : typeof window !== 'undefined' && window.location.hostname !== 'localhost'
     ? `http://${window.location.hostname}:5000`
     : 'http://localhost:5000')
 ).replace(/\/$/, '')
