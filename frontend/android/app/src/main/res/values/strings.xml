@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GeoSoS</string>
+    <string name="title_activity_main">GeoSoS</string>
+    <string name="package_name">com.geosos.emergency</string>
+    <string name="custom_url_scheme">com.geosos.emergency</string>
+</resources>
