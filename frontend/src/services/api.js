@@ -3,17 +3,14 @@ import axios from 'axios'
 export const API_ORIGIN = (
   import.meta.env.VITE_API_URL ||
   (typeof window !== 'undefined' && window.location.hostname.includes('pages.dev')
-    ? 'https://fast-days-sin.loca.lt'
+    ? 'https://geosos-zahf.onrender.com'
     : typeof window !== 'undefined' && window.location.hostname !== 'localhost'
     ? `http://${window.location.hostname}:5000`
-    : 'http://localhost:5000')
+    : 'https://geosos-zahf.onrender.com')
 ).replace(/\/$/, '')
 
 const api = axios.create({
   baseURL: `${API_ORIGIN}/api`,
-  headers: {
-    'bypass-tunnel-reminder': 'true',
-  },
 })
 
 export function getActiveRole() {
