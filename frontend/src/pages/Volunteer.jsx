@@ -209,7 +209,6 @@ function VolunteerDashboard({ radarBots = [] }) {
   const [success, setSuccess] = useState('')
   const [victimLocation, setVictimLocation] = useState(null)
   const [volunteerLocation, setVolunteerLocation] = useState(null)
-  const [safetyPinInput, setSafetyPinInput] = useState('')
 
   const fetchVolunteerData = useCallback((silent = false) => {
     if (!silent) setLoading(true)
@@ -365,21 +364,7 @@ function VolunteerDashboard({ radarBots = [] }) {
     }
   }
 
-  const verifySafetyPin = async () => {
-    if (!activeSOS || !safetyPinInput) return
-    setLoading(true)
-    setError('')
-    try {
-      const res = await api.put(`/sos/${activeSOS._id}/verify-safety`, { code: safetyPinInput })
-      setSuccess(res.data.message || 'Safe arrival confirmed!')
-      setActiveSOS(prev => ({ ...prev, safetyVerified: true }))
-      setSafetyPinInput('')
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to verify safety code')
-    } finally {
-      setLoading(false)
-    }
-  }
+
 
   const completeSOS = async () => {
     if (!activeSOS) return
@@ -547,83 +532,53 @@ function VolunteerDashboard({ radarBots = [] }) {
               <div style={{ fontSize: '11px', color: '#00cc44', letterSpacing: '4px', textTransform: 'uppercase', marginBottom: '8px' }}>
                 ● Responding — {activeSOS.category?.replace('_', ' ')}
               </div>
-              <div style={{ fontSize: '13px', color: '#555', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '4px' }}>
-                Victim: {activeSOS.victimId?.name || 'Unknown'}
+              <div style={{ fontSize: '13px', color: '#888', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '8px' }}>
+                Victim: <span style={{ color: '#fff', fontWeight: '600' }}>{activeSOS.victimId?.name || 'Unknown'}</span>
               </div>
+              {activeSOS.victimId?.phone && (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  background: '#0d180d', 
+                  border: '1px solid #00aa33', 
+                  borderRadius: '4px', 
+                  padding: '10px 14px', 
+                  marginBottom: '14px' 
+                }}>
+                  <div>
+                    <div style={{ fontSize: '10px', color: '#00cc44', letterSpacing: '2px', textTransform: 'uppercase' }}>
+                      Victim Contact Number
+                    </div>
+                    <div style={{ fontSize: '15px', color: '#fff', letterSpacing: '2px', fontWeight: '600', marginTop: '2px' }}>
+                      {activeSOS.victimId.phone.startsWith('+91') ? activeSOS.victimId.phone : `+91 ${activeSOS.victimId.phone}`}
+                    </div>
+                  </div>
+                  <a
+                    href={`tel:${activeSOS.victimId.phone}`}
+                    style={{
+                      padding: '8px 16px',
+                      background: '#00cc44',
+                      color: '#000',
+                      textDecoration: 'none',
+                      fontFamily: 'Oswald, sans-serif',
+                      fontSize: '12px',
+                      letterSpacing: '2px',
+                      textTransform: 'uppercase',
+                      fontWeight: 'bold',
+                      borderRadius: '3px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    📞 Call Victim
+                  </a>
+                </div>
+              )}
               <div style={{ fontSize: '13px', color: '#555', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '16px' }}>
                 Status: {activeSOS.status}
               </div>
-
-              {/* Anti-Ambush Safety Handshake */}
-              {!activeSOS.safetyVerified ? (
-                <div style={{
-                  background: '#1a1400',
-                  border: '1px solid #ffaa00',
-                  borderRadius: '4px',
-                  padding: '14px',
-                  marginBottom: '16px'
-                }}>
-                  <div style={{ fontSize: '11px', color: '#ffaa00', letterSpacing: '2px', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '6px' }}>
-                    🛡️ Anti-Ambush Safe Arrival Check
-                  </div>
-                  <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '10px', lineHeight: '1.4' }}>
-                    Ask the victim for their 4-digit Safety PIN upon arrival to verify their identity and confirm your safe presence.
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input
-                      type="text"
-                      maxLength={4}
-                      placeholder="Enter 4-Digit PIN"
-                      value={safetyPinInput}
-                      onChange={e => setSafetyPinInput(e.target.value)}
-                      style={{
-                        padding: '8px 12px',
-                        background: '#111',
-                        border: '1px solid #333',
-                        color: '#fff',
-                        fontFamily: 'Oswald, sans-serif',
-                        fontSize: '14px',
-                        letterSpacing: '3px',
-                        width: '140px',
-                        textAlign: 'center'
-                      }}
-                    />
-                    <button
-                      onClick={verifySafetyPin}
-                      disabled={loading || !safetyPinInput}
-                      style={{
-                        padding: '8px 16px',
-                        background: '#ffaa00',
-                        border: 'none',
-                        color: '#000',
-                        fontFamily: 'Oswald, sans-serif',
-                        fontSize: '11px',
-                        letterSpacing: '2px',
-                        textTransform: 'uppercase',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        borderRadius: '2px'
-                      }}
-                    >
-                      Verify Safe Arrival
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div style={{
-                  background: '#002200',
-                  border: '1px solid #00cc44',
-                  borderRadius: '4px',
-                  padding: '10px 14px',
-                  marginBottom: '16px',
-                  fontSize: '11px',
-                  color: '#00cc44',
-                  letterSpacing: '2px',
-                  textTransform: 'uppercase'
-                }}>
-                  ✓ Safe Arrival Verified — Anti-Ambush Cleared
-                </div>
-              )}
 
               <button
                 onClick={completeSOS}
