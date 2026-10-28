@@ -815,28 +815,6 @@ function SOSDashboard() {
                 {activeSOS.status === 'accepted' && 'Volunteer on the way!'}
                 {activeSOS.status === 'responding' && 'Volunteer responding to your location'}
               </div>
-
-              {/* Anti-Ambush Rescue Verification Code */}
-              {activeSOS.verificationCode && (
-                <div style={{
-                  background: '#0d180d',
-                  border: '1px dashed #00cc44',
-                  borderRadius: '4px',
-                  padding: '12px',
-                  marginBottom: '16px',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontSize: '10px', color: '#888', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '4px' }}>
-                    🛡️ Anti-Ambush Safety Verification PIN
-                  </div>
-                  <div style={{ fontSize: '28px', fontWeight: '700', color: '#00cc44', letterSpacing: '8px' }}>
-                    {activeSOS.verificationCode}
-                  </div>
-                  <div style={{ fontSize: '10px', color: '#555', marginTop: '4px' }}>
-                    Share this code with your responder in person to verify their official identity and safe arrival.
-                  </div>
-                </div>
-              )}
               <button
                 onClick={async () => {
                   const emergencyNumber = await getEmergencyNumber()
