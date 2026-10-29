@@ -7,7 +7,7 @@ const { protect } = require('../middleware/auth');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '7d'
+    expiresIn: process.env.JWT_EXPIRE || '90d'
   });
 };
 
@@ -34,43 +34,16 @@ router.post('/send-otp', async (req, res, next) => {
     }
 
     let user = await User.findOne({ phone: cleanPhone });
+    const isExistingUser = !!(user && user.name && user.name !== 'temp' && user.isVerified);
 
-    // IF user exists and is fully registered (has real name, not 'temp'), DIRECT LOGIN!
-    if (user && user.name && user.name !== 'temp' && user.isVerified) {
-      if (role && user.role !== role) {
-        user.role = role;
-        await user.save();
-      }
-
-      const token = generateToken(user._id);
-      console.log(`[AUTH] ⚡ Direct login granted for registered user: ${user.name} (${cleanPhone})`);
-
-      return res.json({
-        success: true,
-        isExistingUser: true,
-        message: `Welcome back, ${user.name}!`,
-        token,
-        user: {
-          _id: user._id,
-          id: user._id,
-          name: user.name,
-          phone: user.phone,
-          role: user.role
-        }
-      });
-    }
-
-    // 1ST TIME REGISTRATION -> Require OTP Flow
     if (!user) {
       user = new User({ phone: cleanPhone, name: 'temp', role: role || 'victim' });
-    } else if (role && user.role !== role) {
-      user.role = role;
     }
 
     const otp = user.generateOTP();
     await user.save();
 
-    console.log(`[AUTH] 🔑 OTP generated for 1st-time registration (${cleanPhone}): ${otp}`);
+    console.log(`[AUTH] 🔑 OTP generated for ${cleanPhone} (existing: ${isExistingUser}): ${otp}`);
 
     // Dispatch via Twilio Verify Service (Live Carrier SMS)
     if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_VERIFY_SERVICE_SID) {
@@ -89,7 +62,7 @@ router.post('/send-otp', async (req, res, next) => {
 
     res.json({
       success: true,
-      isExistingUser: false,
+      isExistingUser,
       message: 'OTP has been sent to your mobile number via SMS.'
     });
   } catch (error) {
