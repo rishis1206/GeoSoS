@@ -392,6 +392,17 @@ router.get('/:id', protect, async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'SOS request not found' })
     }
 
+    // Authorization check: Only victim, assigned volunteer, or admin can view full details
+    const isVictim = sos.victimId && sos.victimId._id.toString() === req.user._id.toString();
+    const isAssigned = sos.assignedVolunteer && sos.assignedVolunteer._id.toString() === req.user._id.toString();
+    const isVolunteer = req.user.role === 'volunteer';
+    const isAdmin = req.user.role === 'admin';
+
+    // Volunteers can view pending requests to evaluate response; otherwise must be party to the emergency
+    if (!isVictim && !isAssigned && !isAdmin && !(isVolunteer && sos.status === 'pending')) {
+      return res.status(403).json({ success: false, message: 'Access denied to this emergency record' });
+    }
+
     res.json({ success: true, sos })
   } catch (error) {
     next(error)
