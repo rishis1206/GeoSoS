@@ -46,35 +46,41 @@ const io = new Server(server, {
   cors: corsOptions
 });
 
-// Rate limiting
+// Trust reverse proxy (Cloudflare & Render) so req.ip reflects real client IP
+app.set('trust proxy', 1);
+
+// Rate limiting helpers
 const isLocal = (req) => {
   const ip = req.ip || req.connection?.remoteAddress || '';
   return !ip || ip === '127.0.0.1' || ip === '::1' || ip.includes('127.0.0.1');
 };
 
+// General API limiter: 600 requests per 15 min (plenty for active app polling, stops DoS scripts)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5000,
-  skip: (req) => isLocal(req) || req.method === 'GET',
-  message: 'Too many requests from this IP, please try again later.',
+  max: 600,
+  skip: (req) => isLocal(req),
+  message: { success: false, message: 'Too many requests from this IP, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
+// SOS Route limiter: Generous for emergency updates (polling status/location), but prevents spam creations
 const sosLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 2000,
-  skip: (req) => isLocal(req) || req.method === 'GET',
-  message: 'Too many SOS requests. Please wait before trying again.',
+  max: 500,
+  skip: (req) => isLocal(req),
+  message: { success: false, message: 'Too many SOS requests. Please wait before trying again.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
+// Auth limiter: Protects login/register against password brute-forcing (30 attempts per 15 min per IP)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 1000,
+  max: 30,
   skip: (req) => isLocal(req),
-  message: 'Too many authentication attempts. Please try again later.',
+  message: { success: false, message: 'Too many authentication attempts. Please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -82,7 +88,7 @@ const authLimiter = rateLimit({
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors(corsOptions));
 app.set('etag', false);
-app.use(limiter);
+app.use('/api/', limiter);
 app.use(express.json());
 app.use(morgan('dev'));
 
