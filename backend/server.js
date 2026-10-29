@@ -27,6 +27,7 @@ const sosRoutes = require('./routes/sos');
 const userRoutes = require('./routes/users');
 const volunteerRoutes = require('./routes/volunteers');
 const messageRoutes = require('./routes/messages');
+const aiRoutes = require('./routes/ai');
 
 // Socket
 const { initializeSocket } = require('./socket/socketHandler');
@@ -108,6 +109,7 @@ app.use('/api/sos', sosLimiter, sosRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/volunteers', volunteerRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Error handler — always last
 app.use(errorHandler);

@@ -1,52 +1,66 @@
 import { useState, useEffect } from 'react'
+import api from '../services/api'
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY
 
 const MODELS = [
-  'gemini-2.5-flash'
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash'
 ]
 
 async function askGemini(prompt) {
-  for (const model of MODELS) {
-    for (let retry = 0; retry < 3; retry++) {
-      try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }]
-            })
+  // 1. Try Backend AI Proxy (Secure & avoids leaking keys into client bundle)
+  try {
+    const res = await api.post('/ai/chat', { prompt })
+    if (res.data?.success && res.data?.text) {
+      return res.data.text
+    }
+  } catch (err) {
+    console.warn('Backend AI proxy request failed, trying direct Gemini client if key exists:', err?.message)
+  }
+
+  // 2. Direct Gemini Fallback (if client key is available)
+  if (GEMINI_API_KEY) {
+    for (const model of MODELS) {
+      for (let retry = 0; retry < 2; retry++) {
+        try {
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+              })
+            }
+          )
+
+          if (response.status === 503) {
+            await new Promise(resolve => setTimeout(resolve, 1500))
+            continue
           }
-        )
 
-        if (response.status === 503) {
-          console.log(`503 from ${model}. Retrying ${retry + 1}/3...`)
-          await new Promise(resolve => setTimeout(resolve, 2000))
-          continue
+          if (response.status === 429) {
+            break
+          }
+
+          if (!response.ok) {
+            break
+          }
+
+          const data = await response.json()
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+          if (text) {
+            return text
+          }
+        } catch (err) {
+          console.error(`Direct ${model} call failed:`, err)
         }
-
-        if (response.status === 429) {
-          return null
-        }
-
-        if (!response.ok) {
-          continue
-        }
-
-        const data = await response.json()
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-
-        if (text) {
-          return text
-        }
-
-      } catch (err) {
-        console.error(`${model} failed:`, err)
       }
     }
   }
+
   return null
 }
 
